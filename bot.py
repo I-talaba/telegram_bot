@@ -83,7 +83,7 @@ async def handle_message(update:Update,context:ContextTypes.DEFAULT_TYPE):
                 belgi = "➗"
                 amal = "Bo'lish"
             else:
-                await update.message.teply_text("❌ Xato!Amal tanlanmagan! ")
+                await update.message.reply_text("❌ Xato!Amal tanlanmagan! ")
                 return
 
             # Natijani chiqarish
