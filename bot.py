@@ -1,4 +1,7 @@
-"""Bu telegram bot da ishlaydigan kalkulyator dasturi"""
+"""
+Bu telegram bot da ishlaydigan kalkulyator dasturi
+Dastur python-telegram-bot==22.7 versiyada yozilgan
+"""
 
 from telegram import Update,ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder,CommandHandler,MessageHandler,filters,ContextTypes
