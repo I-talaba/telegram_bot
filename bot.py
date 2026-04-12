@@ -14,7 +14,7 @@ async def start(update:Update,context:ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
     # Foydalanuvchilarni ma'lumotlarini tozalash
-    user_data.pop(user_id,None)
+    user_data[user_id] = {}
 
     keyboard = [
         ["➕ Yig'indi","➖ Ayirma"],
@@ -33,7 +33,7 @@ async def handle_message(update:Update,context:ContextTypes.DEFAULT_TYPE):
 
     # Nuhim: Agar foydalanuvchi user_data da bo'lmasa,yaratish
     if user_id not in user_data:
-        user_data.pop(user_id,None)
+        user_data[user_id] = {}
         await update.message.reply_text("Iltimos,avval /start tugmasini bosing.")
         return
 
@@ -78,7 +78,7 @@ async def handle_message(update:Update,context:ContextTypes.DEFAULT_TYPE):
                 if b == 0:
                     await update.message.reply_text("Xato!Nolga bo'lish mumkin emas!")
                     # Qayta boshlash
-                    user_data.pop(user_id,None)
+                    user_data[user_id] = {}
                     return
                 result = a / b
                 belgi = "➗"
@@ -94,7 +94,7 @@ async def handle_message(update:Update,context:ContextTypes.DEFAULT_TYPE):
 
 
             # Qayta ishga tushurish (yangi amal uchun) ma'lumotlarni tozalash
-            user_data.pop(user_id,None)
+            user_data[user_id] = {}
             # Yana amla tanlash uchun
             keyboard = [
                 ["➕ Yig'indi", "➖ Ayirma"],
@@ -132,7 +132,7 @@ Misol:
 5 va 3 → 8
 """
     await update.message.reply_text(text)
-    
+
 
 if __name__ == "__main__":
 
