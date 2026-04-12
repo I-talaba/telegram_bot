@@ -1,4 +1,4 @@
-"""Bu telegram bot da ishlaydigan kalkulyator dasturi.pip install python-telegram-bot==22.7"""
+"""Bu telegram bot da ishlaydigan kalkulyator dasturi"""
 
 from telegram import Update,ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder,CommandHandler,MessageHandler,filters,ContextTypes
@@ -14,7 +14,7 @@ async def start(update:Update,context:ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
     # Foydalanuvchilarni ma'lumotlarini tozalash
-    user_data[user_id] = {}
+    user_data.pop(user_id,None)
 
     keyboard = [
         ["➕ Yig'indi","➖ Ayirma"],
@@ -24,6 +24,7 @@ async def start(update:Update,context:ContextTypes.DEFAULT_TYPE):
 
 
     await update.message.reply_text("Amalni tanlang:",reply_markup=reply_markup)
+    await update.message.reply_text("amalni tanlang yoki /help dep yozing")
 
 # Xabarni boshqarish
 async def handle_message(update:Update,context:ContextTypes.DEFAULT_TYPE):
@@ -32,7 +33,7 @@ async def handle_message(update:Update,context:ContextTypes.DEFAULT_TYPE):
 
     # Nuhim: Agar foydalanuvchi user_data da bo'lmasa,yaratish
     if user_id not in user_data:
-        user_data[user_id] = {}
+        user_data.pop(user_id,None)
         await update.message.reply_text("Iltimos,avval /start tugmasini bosing.")
         return
 
@@ -77,7 +78,7 @@ async def handle_message(update:Update,context:ContextTypes.DEFAULT_TYPE):
                 if b == 0:
                     await update.message.reply_text("Xato!Nolga bo'lish mumkin emas!")
                     # Qayta boshlash
-                    user_data[user_id] = {}
+                    user_data.pop(user_id,None)
                     return
                 result = a / b
                 belgi = "➗"
@@ -93,7 +94,7 @@ async def handle_message(update:Update,context:ContextTypes.DEFAULT_TYPE):
 
 
             # Qayta ishga tushurish (yangi amal uchun) ma'lumotlarni tozalash
-            user_data[user_id] = {}
+            user_data.pop(user_id,None)
             # Yana amla tanlash uchun
             keyboard = [
                 ["➕ Yig'indi", "➖ Ayirma"],
@@ -118,10 +119,26 @@ async def handle_message(update:Update,context:ContextTypes.DEFAULT_TYPE):
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
         await update.message.reply_text("Amal:", reply_markup=reply_markup)
 
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = """
+🤖 Kalkulyator bot
+
+Qanday ishlatish:
+1. /start bosing
+2. Amal tanlang
+3. a va b ni kiriting
+
+Misol:
+5 va 3 → 8
+"""
+    await update.message.reply_text(text)
+    
+
 if __name__ == "__main__":
 
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start",start))
+    app.add_handler(CommandHandler("help",help_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND,handle_message))
     print("Bot ishga tushdi...🤖 😎")
     app.run_polling()
