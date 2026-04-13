@@ -7,8 +7,9 @@ from telegram import Update,ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder,CommandHandler,MessageHandler,filters,ContextTypes
 from telegram import InlineKeyboardButton,InlineKeyboardMarkup
 from telegram.ext import CallbackQueryHandler
+import os
 
-TOKEN = "BU_YERGA_TOKEN_JOYLANG"
+TOKEN = os.getenv("TOKEN")
 
 # Foydalanauvchilarni ma'lumotlarini saqlash
 user_data = {}
