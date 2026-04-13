@@ -5,6 +5,8 @@ Dastur python-telegram-bot==22.7 versiyada yozilgan
 
 from telegram import Update,ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder,CommandHandler,MessageHandler,filters,ContextTypes
+from telegram import InlineKeyboardButton,InlineKeyboardMarkup
+from telegram.ext import CallbackQueryHandler
 
 TOKEN = "BU_YERGA_TOKEN_JOYLANG"
 
@@ -13,22 +15,38 @@ user_data = {}
 
 
 # START
-async def start(update:Update,context:ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-
-    # Foydalanuvchilarni ma'lumotlarini tozalash
-    user_data[user_id] = {}
-
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        ["➕ Yig'indi","➖ Ayirma"],
-        ["✖️ Ko'paytma","➗ Bo'lish"]
+        [InlineKeyboardButton("➕ Yig‘indi", callback_data="add")],
+        [InlineKeyboardButton("➖ Ayirma", callback_data="sub")],
+        [InlineKeyboardButton("✖️ Ko‘paytma", callback_data="mul")],
+        [InlineKeyboardButton("➗ Bo‘lish", callback_data="div")]
     ]
-    reply_markup = ReplyKeyboardMarkup(keyboard,resize_keyboard=True)
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
-
-    await update.message.reply_text("Amalni tanlang:",reply_markup=reply_markup)
-    await update.message.reply_text("amalni tanlang yoki /help dep yozing")
-
+    await update.message.reply_text("Amalni tanlang:", reply_markup=reply_markup)
+    
+# Inline tugmalar
+async def button_click(update:Update,context:ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = update.effective_user.id
+    user_data[user_id] = {}
+    
+    if query.data == 'add':
+        user_data[user_id]['operation'] = "➕ Yig'indi"
+    elif query.data == 'sub':
+        user_data[user_id]['operation'] = "➖ Ayirish"
+    elif query.data == 'mul':
+        user_data[user_id]['operation'] = "✖️ Ko'paytma"
+    elif query.data == 'div':
+        user_data[user_id]['operation'] = "➗ Bo'lish"
+    
+    user_data[user_id]['step'] = 'a'
+    await query.message.reply_text("a ni kiriting:")
+    
+    
 # Xabarni boshqarish
 async def handle_message(update:Update,context:ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -141,6 +159,7 @@ if __name__ == "__main__":
 
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start",start))
+    app.add_handler(CallbackQueryHandler(button_click))
     app.add_handler(CommandHandler("help",help_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND,handle_message))
     print("Bot ishga tushdi...🤖 😎")
