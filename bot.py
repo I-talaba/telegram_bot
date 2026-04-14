@@ -1,21 +1,24 @@
-"""
-Bu telegram bot da ishlaydigan kalkulyator dasturi
-Dastur python-telegram-bot==22.7 versiyada yozilgan
-"""
-
-from telegram import Update,ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder,CommandHandler,MessageHandler,filters,ContextTypes
-from telegram import InlineKeyboardButton,InlineKeyboardMarkup
-from telegram.ext import CallbackQueryHandler
 import os
+import threading
+from flask import Flask
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import (
+    ApplicationBuilder, CommandHandler, MessageHandler,
+    CallbackQueryHandler, ContextTypes, filters
+)
 
 TOKEN = os.getenv("TOKEN")
 
-# Foydalanauvchilarni ma'lumotlarini saqlash
+app_flask = Flask(__name__)
+
+# Flask route (Render uchun)
+@app_flask.route("/")
+def home():
+    return "Bot ishlayapti!"
+
+# Telegram bot
 user_data = {}
 
-
-# START
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("➕ Yig‘indi", callback_data="add")],
@@ -26,142 +29,75 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text("Amalni tanlang:", reply_markup=reply_markup)
-    
-# Inline tugmalar
-async def button_click(update:Update,context:ContextTypes.DEFAULT_TYPE):
+
+async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
+
     user_id = update.effective_user.id
     user_data[user_id] = {}
-    
-    if query.data == 'add':
-        user_data[user_id]['operation'] = "➕ Yig'indi"
-    elif query.data == 'sub':
-        user_data[user_id]['operation'] = "➖ Ayirish"
-    elif query.data == 'mul':
-        user_data[user_id]['operation'] = "✖️ Ko'paytma"
-    elif query.data == 'div':
-        user_data[user_id]['operation'] = "➗ Bo'lish"
-    
-    user_data[user_id]['step'] = 'a'
+
+    if query.data == "add":
+        user_data[user_id]["operation"] = "+"
+    elif query.data == "sub":
+        user_data[user_id]["operation"] = "-"
+    elif query.data == "mul":
+        user_data[user_id]["operation"] = "*"
+    elif query.data == "div":
+        user_data[user_id]["operation"] = "/"
+
+    user_data[user_id]["step"] = "a"
+
     await query.message.reply_text("a ni kiriting:")
-    
-    
-# Xabarni boshqarish
-async def handle_message(update:Update,context:ContextTypes.DEFAULT_TYPE):
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text
 
-    # Nuhim: Agar foydalanuvchi user_data da bo'lmasa,yaratish
-    if user_id not in user_data:
-        user_data[user_id] = {}
-        await update.message.reply_text("Iltimos,avval /start tugmasini bosing.")
-        return
-
-
-    #Amalni tanlash
-    if text in ["➕ Yig'indi","➖ Ayirma","✖️ Ko'paytma","➗ Bo'lish"]:
-        user_data[user_id]["operation"] = text
-        user_data[user_id]["step"] = "a"
-        await update.message.reply_text("a ni kiriting:")
-
-    # a ni kiritish
-    elif user_data.get(user_id,{}).get("step") == "a":
-        try:
-            user_data[user_id]["a"] = float(text)
+    try:
+        if user_data.get(user_id, {}).get("step") == "a":
+            user_data[user_id]["a"] = int(text)
             user_data[user_id]["step"] = "b"
-            await update.message.reply_text("b ni kiriting (son):")
-        except ValueError:
-            await update.message_reply_text("Iltimos,son kiriting!")
+            await update.message.reply_text("b ni kiriting:")
 
-    # b ni qabul qilsih hisoblash
-    elif user_data.get(user_id,{}).get("step") == "b":
-        try:
-
+        elif user_data.get(user_id, {}).get("step") == "b":
             a = user_data[user_id]["a"]
-            b = float(text)
+            b = int(text)
             op = user_data[user_id]["operation"]
 
-            # Hisoblash
-            if op == "➕ Yig'indi":
+            if op == "+":
                 result = a + b
-                belgi = "➕"
-                amal = "Yig'indi"
-            elif op == "➖ Ayirma":
+            elif op == "-":
                 result = a - b
-                belgi = "➖"
-                amal = "Ayirma"
-            elif op == "✖️ Ko'paytma":
+            elif op == "*":
                 result = a * b
-                belgi = "✖️"
-                amal = "Ko'paytma"
-            elif op == "➗ Bo'lish":
+            elif op == "/":
                 if b == 0:
-                    await update.message.reply_text("Xato!Nolga bo'lish mumkin emas!")
-                    # Qayta boshlash
-                    user_data[user_id] = {}
+                    await update.message.reply_text("0 ga bo‘lish mumkin emas!")
                     return
                 result = a / b
-                belgi = "➗"
-                amal = "Bo'lish"
-            else:
-                await update.message.reply_text("❌ Xato!Amal tanlanmagan! ")
-                return
 
-            # Natijani chiqarish
-            javob = f"📋 {amal} amal natijasi: \n"
-            javob += f"{a} {belgi} {b} = {result}"
-            await update.message.reply_text(javob)
+            await update.message.reply_text(f"Natija: {result}")
+            user_data.pop(user_id, None)
 
+        else:
+            await update.message.reply_text("Iltimos, avval amal tanlang /start")
 
-            # Qayta ishga tushurish (yangi amal uchun) ma'lumotlarni tozalash
-            user_data[user_id] = {}
-            # Yana amla tanlash uchun
-            keyboard = [
-                ["➕ Yig'indi", "➖ Ayirma"],
-                ["✖️ Ko'paytma", "➗ Bo'lish"]
-            ]
-            reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-            await update.message.reply_text("Yangi amal kiriting yoki /start bosing:",reply_markup=reply_markup)
+    except:
+        await update.message.reply_text("Iltimos, son kiriting!")
 
-        except ValueError:
-            await update.message.reply_text("Iltimos,son kiriting!")
-        except Exception as e:
-            await update.message.reply_text(f"Xatolik yuz berdi {e}")
-
-    else:
-        # hech qanday amal tanlanmagan bo'lsa
-        await update.message.reply_text("Iltimos,avval amallardan birini tanlang yoki /start bosing:")
-        # tugmalarni ko'rsatish
-        keyboard = [
-            ["➕ Yig'indi", "➖ Ayirma"],
-            ["✖️ Ko'paytma", "➗ Bo'lish"]
-        ]
-        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-        await update.message.reply_text("Amal:", reply_markup=reply_markup)
-
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = """
-🤖 Kalkulyator bot
-
-Qanday ishlatish:
-1. /start bosing
-2. Amal tanlang
-3. a va b ni kiriting
-
-Misol:
-5 va 3 → 8
-"""
-    await update.message.reply_text(text)
-
-
-if __name__ == "__main__":
-
+def run_bot():
     app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start",start))
+    app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_click))
-    app.add_handler(CommandHandler("help",help_command))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND,handle_message))
-    print("Bot ishga tushdi...🤖 😎")
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    print("Bot ishlayapti...")
     app.run_polling()
+
+# Thread orqali botni ishga tushiramiz
+threading.Thread(target=run_bot).start()
+
+# Flask port (Render uchun)
+port = int(os.environ.get("PORT", 10000))
+app_flask.run(host="0.0.0.0", port=port)
